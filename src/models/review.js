@@ -14,7 +14,9 @@ const schema = mongoose.Schema({
     rating: {
         type: Number,
         required: [true, 'Rating is required.'],
-        trim: true
+        trim: true,
+        min: 1,
+        max: 10
     },
     category: {
         type: mongoose.Schema.ObjectId,
