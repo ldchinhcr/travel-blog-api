@@ -18,7 +18,8 @@ exports.createTour = async function (req, res) {
 exports.updateTour = async function (req, res) {
   try {
     const tour = await Tour.findById(req.params.tId);
-    if (tour.createdBy.toString() === req.user.id.toString()) {
+    const user = await User.findById(req.user.id);
+    if (tour.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
     delete req.user;
     delete req.cat;
     delete req.tour;
@@ -72,7 +73,8 @@ exports.getSingleTour = async function (req, res) {
 exports.deleteTour = async function (req, res) {
     try {
       const tour = await Tour.findById(req.params.tId);
-      if (tour.createdBy.toString() === req.user.id.toString()) {
+      const user = await User.findById(req.user.id);
+      if (tour.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
       await Tour.findByIdAndDelete(req.params.tId);
       res.status(204).json();
       } else {

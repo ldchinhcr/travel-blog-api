@@ -19,8 +19,8 @@ exports.createReview = async function (req, res) {
 exports.updateReview = async function (req, res) {
   try {
     const review = await Review.findById(req.params.rId);
-
-    if (review.createdBy.toString() === req.user.id.toString()) {
+    const user = await User.findById(req.user.id);
+    if (review.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
       delete req.user;
       delete req.cat;
       delete req.tour;
@@ -76,7 +76,8 @@ exports.getReview = async function (req, res) {
 exports.deleteReview = async function (req, res) {
   try {
     const review = await Review.findById(req.params.rId);
-    if (review.createdBy.toString() === req.user.id.toString()) {
+    const user = await User.findById(req.user.id);
+    if (review.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
       await Review.findByIdAndDelete(req.params.rId);
       res.status(204).json();
     } else {

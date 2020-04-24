@@ -27,12 +27,17 @@ exports.getSingleCat = async function (req, res) {
 };
 
 exports.deleteCat = async function (req, res) {
+  const user = await User.findById(req.user.id);
+  if (user.roles === 'admin') {
   try {
     await Cat.findByIdAndDelete(req.params.cId);
     res.status(204).json();
   } catch (err) {
     res.status(400).json({ ok: false, message: err.message });
   }
+} else {
+  res.status(401).json({ok: false, error: 'Unauthorized'});
+}
 };
 
 exports.updateCat = async function(req, res) {
