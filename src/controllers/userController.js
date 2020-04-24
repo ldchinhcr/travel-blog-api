@@ -6,15 +6,21 @@ exports.getUser = async (req, res)=> {
     res.status(200).json({status: true, data: user});
 }
 exports.createUser = async (req,res) => {
-    const {email, name, password, dob} = req.body;
     try {
         if (req.body.dob) {
-            const user = new User({email, name, password, dob: dob})
-            await user.save();
+            const user = await User.create({
+                email: req.body.email.toLowerCase(),
+                name: req.body.name,
+                password: req.body.password,
+                dob: req.body.dob
+            })
             res.status(201).json({status: true, data: user});
         } else {
-            const user = new User({email, name, password})
-            await user.save();
+            const user = await User.create({
+                email: req.body.email.toLowerCase(),
+                name: req.body.name,
+                password: req.body.password
+            })
             res.status(201).json({status: true, data: user});
         }
     } catch (e) {
@@ -28,6 +34,7 @@ exports.updateUser = async function(req, res) {
     try {
     if (req.body) {
     req.body.token = []
+    req.body.email = req.body.email.toLowerCase();
     const fields = Object.keys(req.body);
     fields.map(item => user[item] = req.body[item])
     user.save();

@@ -60,7 +60,7 @@ schema.virtual('userTours', {
 });
 
 schema.statics.loginWithCredentials = async (email, password) => {
-  const user = await User.findOne({ email });
+  const user = await User.findOne({email: email.toLowerCase()});
   if (!user) throw new Error("User not found");
   const auth = await bcrypt.compare(password.toString(), user.password);
   if (!auth) throw new Error("Password not correct");
