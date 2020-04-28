@@ -14,8 +14,8 @@ const schema = mongoose.Schema(
       validate: {
         validator: function (value) {
           return validator.isEmail(value);
-        },
-      },
+        }
+      }
     },
     name: {
       first: {
