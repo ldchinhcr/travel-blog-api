@@ -21,10 +21,6 @@ exports.updateReview = async function (req, res) {
     const review = await Review.findById(req.params.rId);
     const user = await User.findById(req.user.id);
     if (review.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
-      delete req.user;
-      delete req.cat;
-      delete req.tour;
-      delete req.review;
       if (req.body) {
         const fields = Object.keys(req.body);
         fields.map((item) => (review[item] = req.body[item]));
@@ -43,14 +39,14 @@ exports.updateReview = async function (req, res) {
 
 exports.getReviews = async function (req, res) {
   try {
-    const tour = await Tour.find(req.tour._id)
+    const tour = await Tour.findById(req.tour._id)
       .populate({
         path: "reviews",
         select: "-createdAt -updatedAt -__v -createdBy -category",
       })
       .populate("category", "title description")
       .populate("createdBy", "_id email name");
-    res.status(200).json({ ok: true, tour: tour });
+    res.status(200).json({ ok: true, tour: tour , reviews_length: tour.reviews.length});
   } catch (err) {
     res.status(500).json({ ok: false, err: err.message });
   }
