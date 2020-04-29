@@ -9,11 +9,6 @@ const app = express();
 const router = express.Router();
 app.use(router);
 
-router.get('/top-5-cheap', aliasTopTours, filteredTours);
-
-router.get('/tour-stats', getTourStats);
-
-router.get('/monthly-plan/:year', getMonthlyPlan);
 
 router.route('/search')
 .get(filteredTours);
@@ -38,6 +33,11 @@ router.route('/cat/:cId/tour/:tId')
 .put(auth, timeOut, validateCat, validateTour, updateTour)
 .delete(auth, timeOut, validateCat, validateTour, deleteTour);
 
+router.get('/top-5-cheap', aliasTopTours, filteredTours);
+
+router.get('/tour-stats', getTourStats);
+
+router.get('/monthly-plan/:year', getMonthlyPlan);
 //reviews
 router.route('/cat/:cId/tour/:tId/reviews')
 .get(validateCat, validateTour, getReviews)

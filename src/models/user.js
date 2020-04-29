@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
-const saltRounds = 10;
+const saltRounds = 12;
 const jwt = require("jsonwebtoken");
+const AppError = require('../utils/appError');
+
 
 const schema = mongoose.Schema(
   {
@@ -11,11 +13,10 @@ const schema = mongoose.Schema(
       required: [true, "Email is required"],
       trim: true,
       unique: true,
-      validate: {
-        validator: function (value) {
-          return validator.isEmail(value);
-        }
-      }
+      lowercase: true,
+      validate: [
+        validator.isEmail,
+        'Please provide a valid email']
     },
     name: {
       first: {
@@ -32,6 +33,17 @@ const schema = mongoose.Schema(
     password: {
       type: String,
       required: [true, "Password is required"],
+      minlength: 8
+    },
+    passwordConfirm: {
+      type: String,
+      required: [true, "Please confirm your password"],
+      validate: {
+        validator: function (value) {
+          return value === this.password;
+        },
+        message: 'Passwords are not the same.'
+      }
     },
     dob: {
       type: Date,
@@ -61,9 +73,9 @@ schema.virtual('userTours', {
 
 schema.statics.loginWithCredentials = async (email, password) => {
   const user = await User.findOne({email: email.toLowerCase()});
-  if (!user) throw new Error("User not found");
+  if (!user) throw new AppError("Email not correct", 401);
   const auth = await bcrypt.compare(password.toString(), user.password);
-  if (!auth) throw new Error("Password not correct");
+  if (!auth) throw new AppError("Password not correct", 401);
   return user;
 };
 
@@ -73,8 +85,6 @@ schema.statics.generateToken = async (user) => {
     process.env.SECRET_KEY,
     { expiresIn: process.env.TOKEN_LIFE }
   );
-  user.token.push(token);
-  user.save();
   return token;
 };
 
@@ -90,8 +100,8 @@ schema.methods.toJSON = function () {
 
 schema.pre("save", async function (next) {
   if (!this.isModified("password")) next();
-  const hashedPassword = await bcrypt.hash(this.password, saltRounds);
-  this.password = hashedPassword;
+  this.password = await bcrypt.hash(this.password, saltRounds);
+  this.passwordConfirm = undefined;
   next();
 });
 

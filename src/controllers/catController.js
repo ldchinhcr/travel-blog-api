@@ -1,48 +1,53 @@
 const Cat = require("../models/category");
 const User = require("../models/user");
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
-exports.getCats = async function (req, res) {
+
+exports.getCats = catchAsync( async function (req, res, next) {
   const cats = await Cat.find();
-  res.status(200).json({ ok: true, categories: cats });
-};
-
-exports.createCat = async function (req, res) {
-  const { cat, description } = req.body;
-  try {
-    const category = await Cat.create({ cat, description });
-    res.status(201).json({ ok: true, category: category });
-  } catch (err) {
-    res.status(400).json({ ok: false, message: err.message });
+  if (cats.length === 0) {
+    return next(new AppError('No categories found', 404));
   }
-};
+  res.status(200).json({ ok: true, categories: cats });
+});
 
-exports.getSingleCat = async function (req, res) {
+exports.createCat = catchAsync( async function (req, res) {
+  const { cat, description } = req.body;
+    const category = await Cat.create({ cat, description });
+    if (!category) {
+      return next(new AppError('Create category failed', 500));
+    }
+    res.status(201).json({ ok: true, category: category });
+});
+
+exports.getSingleCat = catchAsync( async function (req, res, next) {
   const cat = await Cat.findById(req.params.cId).populate({
     path: "tours",
     select: "-createdAt -updatedAt -__v -createdBy -id",
   });
-  if (!cat)
-    return res.status(404).json({ ok: false, message: "Category not found" });
-  res.status(200).json({ ok: true, cat: cat });
-};
+  if (!cat) {
+  return next(new AppError('No category found with that ID', 404));
+}
+res.status(200).json({ ok: true, cat: cat });
+});
 
-exports.deleteCat = async function (req, res) {
+exports.deleteCat = catchAsync( async function (req, res, next) {
   const user = await User.findById(req.user.id);
   if (user.roles === 'admin') {
-  try {
-    await Cat.findByIdAndDelete(req.params.cId);
+    const cat = await Cat.findByIdAndDelete(req.params.cId);
+    if (!cat) {
+          return next(new AppError('No category found with that ID', 404));
+    }
     res.status(204).json();
-  } catch (err) {
-    res.status(400).json({ ok: false, message: err.message });
-  }
-} else {
-  res.status(401).json({ok: false, error: 'Unauthorized'});
-}
 };
+});
 
-exports.updateCat = async function(req, res) {
-  try {
+exports.updateCat = catchAsync( async function(req, res, next) {
     const cat = await Cat.findById(req.params.cId);
+    if (!cat) {
+      return next(new AppError('No category found with that ID', 404));
+    }
     const user = await User.findById(req.user.id)
     if (user.roles === 'admin') {
     delete req.user
@@ -55,7 +60,4 @@ exports.updateCat = async function(req, res) {
 } else {
   res.status(401).json({ok: false, error: 'Unauthorized'});
 }
-} catch (error) {
-    res.status(400).json({ok: false, error: error.message});
-}
-}
+});

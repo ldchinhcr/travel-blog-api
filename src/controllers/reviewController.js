@@ -1,8 +1,9 @@
 const Review = require("../models/review");
 const Tour = require("../models/tour");
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
-exports.createReview = async function (req, res) {
-  try {
+exports.createReview = catchAsync( async function (req, res, next) {
     const review = await Review.create({
       tour: req.tour._id,
       content: req.body.content,
@@ -10,15 +11,17 @@ exports.createReview = async function (req, res) {
       category: req.cat._id,
       createdBy: req.user.id,
     });
+    if (!review) {
+      return next(new AppError('Create review failed', 500));
+    }
     res.status(201).json({ ok: true, review: review });
-  } catch (err) {
-    res.status(500).json({ ok: false, err: err.message });
-  }
-};
+});
 
-exports.updateReview = async function (req, res) {
-  try {
+exports.updateReview = catchAsync(async function (req, res, next) {
     const review = await Review.findById(req.params.rId);
+    if (!review) {
+      return next(new AppError('No category found with that ID', 404));
+    }
     const user = await User.findById(req.user.id);
     if (review.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
       if (req.body) {
@@ -32,13 +35,9 @@ exports.updateReview = async function (req, res) {
     } else {
       res.status(401).json({ ok: false, err: "Unauthorized" });
     }
-  } catch (err) {
-    res.status(500).json({ ok: false, err: err.message });
-  }
-};
+});
 
-exports.getReviews = async function (req, res) {
-  try {
+exports.getReviews = catchAsync(async function (req, res, next) {
     const tour = await Tour.findById(req.tour._id)
       .populate({
         path: "reviews",
@@ -46,40 +45,36 @@ exports.getReviews = async function (req, res) {
       })
       .populate("category", "title description")
       .populate("createdBy", "_id email name");
+      if (!tour) {
+        return next(new AppError('No tour or reviews found with that ID', 404));
+      }
     res.status(200).json({ ok: true, tour: tour , reviews_length: tour.reviews.length});
-  } catch (err) {
-    res.status(500).json({ ok: false, err: err.message });
-  }
-};
+});
 
-exports.getReview = async function (req, res) {
-  try {
-    const review = await Review.find({ _id: req.params.rId })
+exports.getReview = catchAsync(async function (req, res, next) {
+    const review = await Review.findById(req.params.rId)
       .populate("tour", "_id title description")
       .populate("createdBy", "_id email name")
       .populate({
         path: "category",
         select: "-createdAt -updatedAt -__v",
       });
-    if (review.length === 0)
-      return res.status(404).json({ ok: false, err: "Review Id not exist" });
+      if (!review) {
+        return next(new AppError('No review found with that ID', 404));
+      }
     res.status(200).json({ ok: true, review: review });
-  } catch (err) {
-    res.status(500).json({ ok: false, err: err.message });
-  }
-};
+});
 
-exports.deleteReview = async function (req, res) {
-  try {
+exports.deleteReview = catchAsync(async function (req, res, next) {
     const review = await Review.findById(req.params.rId);
     const user = await User.findById(req.user.id);
     if (review.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
-      await Review.findByIdAndDelete(req.params.rId);
+      const delReview = await Review.findByIdAndDelete(req.params.rId);
+      if (!delReview) {
+        return next(new AppError('No review found with that ID', 404));
+      }
       res.status(204).json();
     } else {
       res.status(401).json({ ok: false, message: "Unauthorized" });
     }
-  } catch (err) {
-    res.status(400).json({ ok: false, message: err.message });
-  }
-};
+});

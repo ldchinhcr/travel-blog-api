@@ -1,55 +1,55 @@
 const User = require('../models/user');
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
-exports.getUser = async (req, res)=> {
-    const user = await User.findById(req.params.id)
-    .populate("userTours", "_id title description")
-    res.status(200).json({status: true, data: user});
-}
-exports.createUser = async (req,res) => {
-    try {
-        if (req.body.dob) {
-            const user = await User.create({
-                email: req.body.email.toLowerCase(),
-                name: req.body.name,
-                password: req.body.password,
-                dob: req.body.dob
-            })
-            res.status(201).json({status: true, data: user});
-        } else {
-            const user = await User.create({
-                email: req.body.email.toLowerCase(),
-                name: req.body.name,
-                password: req.body.password
-            })
-            res.status(201).json({status: true, data: user});
-        }
-    } catch (e) {
-        res.status(400).json({status: false, error: e.message});
+exports.getUser = catchAsync( async (req, res, next) => {
+  const user = await User.findById(req.params.id).populate(
+    'userTours',
+    '_id title description'
+  );
+  if (!user) {
+    return next(new AppError('No User with that such ID!', 404));
+  }
+  res.status(200).json({ status: true, data: user });
+});
+
+exports.createUser = catchAsync(async (req, res, next) => {
+    const user = await User.create(req.body);
+    if (!user) {
+      return next(new AppError('Create user failed', 400));
     }
-}
+    res.status(201).json({ status: true, data: user });
+});
 
-exports.updateUser = async function(req, res) {
-    const user = await User.findById(req.params.id);
-    delete req.user
-    try {
-    if (req.body) {
-    req.body.token = []
+exports.updateUser = catchAsync(async function (req, res, next) {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError('No User with that such ID!', 404));
+  }
+  if (req.body) {
+    req.body.token = [];
     req.body.email = req.body.email.toLowerCase();
     const fields = Object.keys(req.body);
-    fields.map(item => user[item] = req.body[item])
-    user.save();
-    res.status(200).json({ok: true, message: 'User updated successfully. Please login again.'})
-}
-} catch (error) {
-    res.status(400).json({ok: false, error: error.message});
-}
-}
+    fields.map((item) => (user[item] = req.body[item]));
+    const verified = await user.save();
+    if (!verified) {
+      return next(new AppError('Something went wrong!', 400));
+    }
+    res
+      .status(200)
+      .json({
+        ok: true,
+        message: 'User updated successfully. Please login again.',
+      });
+  }
+});
 
-exports.changeRolesAdmin = async function(req, res) {
-    try {
-    await User.findByIdAndUpdate(req.user.id,{ roles: 'admin'})
-    res.status(200).json({ok: true, message: "User's roles updated successfully."})
-} catch (error) {
-    res.status(400).json({ok: false, error: error.message});
-}
-}
+exports.changeRolesAdmin = catchAsync(async function (req, res, next) {
+  const user = await User.findByIdAndUpdate(req.user.id, { roles: 'admin' });
+  if (!user) {
+    return next(new AppError('No User with that such ID!', 404));
+  }
+  res
+    .status(200)
+    .json({ ok: true, message: "User's roles updated successfully." });
+});
