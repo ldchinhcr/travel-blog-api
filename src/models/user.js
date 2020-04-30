@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
+const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const saltRounds = 12;
 const jwt = require("jsonwebtoken");
@@ -56,7 +57,9 @@ const schema = mongoose.Schema(
       enum: ["user", "admin", "editor"],
       default: "admin",
     },
-    token: []
+    token: [],
+    passwordResetToken: String,
+    passwordResetExpires: Date
   },
   {
     timestamps: true,
@@ -88,6 +91,19 @@ schema.statics.generateToken = async (user) => {
   return token;
 };
 
+schema.methods.createPasswordResetToken = function() {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  this.passwordResetToken = crypto
+  .createHash('sha256')
+  .update(resetToken)
+  .digest('hex');
+
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
+}
+
 schema.methods.toJSON = function () {
   const userObj = this.toObject();
   delete userObj.roles;
@@ -99,7 +115,7 @@ schema.methods.toJSON = function () {
 };
 
 schema.pre("save", async function (next) {
-  if (!this.isModified("password")) next();
+  if (!this.isModified("password") || this.isNew) next();
   this.password = await bcrypt.hash(this.password, saltRounds);
   this.passwordConfirm = undefined;
   next();

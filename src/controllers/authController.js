@@ -30,7 +30,7 @@ exports.logoutall = catchAsync(async function (req, res) {
   });
 
 exports.auth = catchAsync(async function (req, res, next) {
-  if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) return res.status(403).json({ ok: false, message: "Token is required" });
+  if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) return res.status(403).json({ ok: false, message: "You're not logged in, please login first!" });
   const token = req.headers.authorization.replace("Bearer ", "");
   if (token) {
       const tokenJson = jwt.verify(token, process.env.SECRET_KEY);
@@ -42,7 +42,7 @@ exports.auth = catchAsync(async function (req, res, next) {
       return next(new AppError('User not found!', 404));
     }
   } else {
-    return next(new AppError('Token is required!', 403));
+    return next(new AppError("You're not logged in, please login first", 401));
   }
 });
 

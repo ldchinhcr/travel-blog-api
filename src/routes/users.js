@@ -1,4 +1,4 @@
-const {createUser, updateUser, getUser, changeRolesAdmin} = require('../controllers/userController');
+const {createUser, updateUser, getUser, changeRolesAdmin, forgotPassword, resetPassword} = require('../controllers/userController');
 const {login, auth, timeOut, logoutall, logout} = require('../controllers/authController');
 const express = require('express');
 const app = express();
@@ -20,5 +20,8 @@ router.route('/:id')
 router.put('/adminconfig', auth, timeOut, changeRolesAdmin);
 
 router.post('/login', login);
+
+router.post('/forgotpassword', forgotPassword);
+router.put('/resetpassword/:token', resetPassword);
 
 module.exports = router;
