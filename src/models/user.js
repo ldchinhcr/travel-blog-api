@@ -59,7 +59,12 @@ const schema = mongoose.Schema(
     },
     token: [],
     passwordResetToken: String,
-    passwordResetExpires: Date
+    passwordResetExpires: Date,
+    active: {
+      type: Boolean,
+      default: true,
+      select: false
+    }
   },
   {
     timestamps: true,
@@ -120,6 +125,11 @@ schema.pre("save", async function (next) {
   this.passwordConfirm = undefined;
   next();
 });
+
+schema.pre(/^find/, function(next) {
+  this.find({active: true});
+  next();
+})
 
 const User = mongoose.model("User", schema);
 

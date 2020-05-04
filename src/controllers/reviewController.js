@@ -2,6 +2,7 @@ const Review = require("../models/review");
 const Tour = require("../models/tour");
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const {updateOne, deleteOne} = require('../utils/operateHandler');
 
 exports.createReview = catchAsync( async function (req, res, next) {
     const review = await Review.create({
@@ -17,25 +18,7 @@ exports.createReview = catchAsync( async function (req, res, next) {
     res.status(201).json({ ok: true, review: review });
 });
 
-exports.updateReview = catchAsync(async function (req, res, next) {
-    const review = await Review.findById(req.params.rId);
-    if (!review) {
-      return next(new AppError('No category found with that ID', 404));
-    }
-    const user = await User.findById(req.user.id);
-    if (review.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
-      if (req.body) {
-        const fields = Object.keys(req.body);
-        fields.map((item) => (review[item] = req.body[item]));
-        review.save();
-        res
-          .status(200)
-          .json({ ok: true, message: "Review updated successfully" });
-      }
-    } else {
-      res.status(401).json({ ok: false, err: "Unauthorized" });
-    }
-});
+exports.updateReview = updateOne(Review);
 
 exports.getReviews = catchAsync(async function (req, res, next) {
     const tour = await Tour.findById(req.tour._id)
@@ -65,16 +48,4 @@ exports.getReview = catchAsync(async function (req, res, next) {
     res.status(200).json({ ok: true, review: review });
 });
 
-exports.deleteReview = catchAsync(async function (req, res, next) {
-    const review = await Review.findById(req.params.rId);
-    const user = await User.findById(req.user.id);
-    if (review.createdBy.toString() === req.user.id.toString() || user.roles === 'admin' || user.roles === 'editor' ) {
-      const delReview = await Review.findByIdAndDelete(req.params.rId);
-      if (!delReview) {
-        return next(new AppError('No review found with that ID', 404));
-      }
-      res.status(204).json();
-    } else {
-      res.status(401).json({ ok: false, message: "Unauthorized" });
-    }
-});
+exports.deleteReview = deleteOne(Review);

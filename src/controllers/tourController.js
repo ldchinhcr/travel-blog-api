@@ -4,6 +4,8 @@ const User = require('../models/user');
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const {updateOne, deleteOne} = require('../utils/operateHandler');
+
 
 
 exports.aliasTopTours = (req, res, next) => {
@@ -23,29 +25,7 @@ exports.createTour = catchAsync(async function (req, res) {
     res.status(201).json({ ok: true, tour: tour });
 });
 
-exports.updateTour = catchAsync(async function (req, res, next) {
-    const tour = await Tour.findById(req.params.tId);
-    if (!tour) {
-      return next(new AppError('No tour found with that ID', 404));
-    }
-    const user = await User.findById(req.user.id);
-    if (
-      tour.createdBy.toString() === req.user.id.toString() ||
-      user.roles === 'admin' ||
-      user.roles === 'editor'
-    ) {
-      if (req.body) {
-        const fields = Object.keys(req.body);
-        fields.map((item) => (tour[item] = req.body[item]));
-        tour.save();
-        res
-          .status(200)
-          .json({ ok: true, message: 'Tour updated successfully' });
-      }
-    } else {
-      res.status(401).json({ ok: false, err: 'Unauthorized' });
-    }
-});
+exports.updateTour = updateOne(Tour);
 
 exports.getTour = catchAsync(async function (req, res, next) {
     const cat = await Cat.findById(req.cat._id).populate({
@@ -53,7 +33,7 @@ exports.getTour = catchAsync(async function (req, res, next) {
       select: '-createdAt -updatedAt -__v -createdBy -id',
     });
     if (!cat) {
-      return next(new AppError('No reviews found with that category ID', 404));
+      return next(new AppError('No tours found with that category ID', 404));
     }
     res
       .status(200)
@@ -83,23 +63,7 @@ exports.getSingleTour = catchAsync(async function (req, res, next) {
     res.status(200).json({ ok: true, tour: tour });
 });
 
-exports.deleteTour = catchAsync(async function (req, res, next) {
-    const tour = await Tour.findById(req.params.tId);
-    const user = await User.findById(req.user.id);
-    if (
-      tour.createdBy.toString() === req.user.id.toString() ||
-      user.roles === 'admin' ||
-      user.roles === 'editor'
-    ) {
-      const delTour = await Tour.findByIdAndDelete(req.params.tId);
-      if (!delTour) {
-        return next(new AppError('No tour found with that ID', 404));
-      }
-      res.status(204).json();
-    } else {
-      res.status(401).json({ ok: false, message: 'Unauthorized' });
-    }
-});
+exports.deleteTour = deleteOne(Tour);
 
 exports.getTourStats = catchAsync(async (req, res) => {
     const stats = await Tour.aggregate([

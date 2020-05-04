@@ -1,8 +1,11 @@
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
+const {updateOne} = require('../utils/operateHandler');
+
 
 exports.getUser = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.params.id).populate(
@@ -15,6 +18,12 @@ exports.getUser = catchAsync(async (req, res, next) => {
   res.status(200).json({ status: true, data: user });
 });
 
+exports.allUser = catchAsync(async function (req, res, next) {
+  const users = await User.find().populate('userTours', '_id title description');
+  console.log(users)
+  res.status(200).json({ ok: true, data: users})
+})
+
 exports.createUser = catchAsync(async (req, res, next) => {
   const user = await User.create(req.body);
   if (!user) {
@@ -23,16 +32,19 @@ exports.createUser = catchAsync(async (req, res, next) => {
   res.status(201).json({ status: true, data: user });
 });
 
-exports.updateUser = catchAsync(async function (req, res, next) {
-  const user = await User.findById(req.params.id);
+exports.updatePasswords = catchAsync(async function (req, res, next) {
+  const user = await User.findById(req.params.id).select('+password');
   if (!user) {
     return next(new AppError('No User with that such ID!', 404));
   }
   if (req.body) {
-    req.body.token = [];
-    req.body.email = req.body.email.toLowerCase();
-    const fields = Object.keys(req.body);
-    fields.map((item) => (user[item] = req.body[item]));
+    const verifiedPassword = await bcrypt.compare(req.body.currentPassword, user.password);
+    if (!verifiedPassword) {
+      return next(new AppError('Invalid current password', 400));
+    }
+    user.token = [];
+    user.password = req.body.password;
+    user.passwordConfirm = req.body.passwordConfirm;
     const verified = await user.save();
     if (!verified) {
       return next(new AppError('Something went wrong!', 500));
@@ -41,8 +53,12 @@ exports.updateUser = catchAsync(async function (req, res, next) {
       ok: true,
       message: 'User updated successfully. Please login again.',
     });
+  } else {
+    return next(new AppError('Please provide some information to change your account', 400))
   }
 });
+
+exports.updateProfile = updateOne(User);
 
 exports.changeRolesAdmin = catchAsync(async function (req, res, next) {
   const user = await User.findByIdAndUpdate(req.user.id, { roles: 'admin' });
@@ -117,4 +133,13 @@ exports.resetPassword = catchAsync(async function (req, res, next) {
     ok: true,
     message: 'Password had been set successfully.'
   })
+});
+
+exports.setUserInactive = catchAsync(async function (req, res, next) {
+  if (req.user.id === req.params.id) {
+    await User.findByIdAndUpdate(req.params.id, {active: false})
+    res.status(204).end();
+  } else {
+    return next(new AppError('You not have permissions to perform this action.', 403));
+  }
 });

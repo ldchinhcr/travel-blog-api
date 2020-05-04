@@ -102,20 +102,21 @@ schema.virtual('reviews', {
     return Obj;
   };
 
+  
   schema.pre('save', function(next) {
       this.slug = slugify(this.name, { lower: true });
       next();
-  })
-
-  schema.pre(/^find/, function(next) {
-    this.find({secretTour: {$ne: true}});
-    next();
-  })
+    });
+    
+    schema.pre(/^find/, function(next) {
+        this.find({secretTour: {$ne: true}});
+        next();
+    })
 
   schema.pre('aggregate', function(next) {
     this.pipeline().unshift({ $match: { secretTour: {$ne: true} } });
     next();
-  })
+  });
   
 const Tour = mongoose.model('Tour', schema);
 

@@ -2,6 +2,7 @@ const Cat = require("../models/category");
 const User = require("../models/user");
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const {updateOne, deleteOne} = require('../utils/operateHandler');
 
 
 exports.getCats = catchAsync( async function (req, res, next) {
@@ -32,32 +33,6 @@ exports.getSingleCat = catchAsync( async function (req, res, next) {
 res.status(200).json({ ok: true, cat: cat });
 });
 
-exports.deleteCat = catchAsync( async function (req, res, next) {
-  const user = await User.findById(req.user.id);
-  if (user.roles === 'admin') {
-    const cat = await Cat.findByIdAndDelete(req.params.cId);
-    if (!cat) {
-          return next(new AppError('No category found with that ID', 404));
-    }
-    res.status(204).json();
-};
-});
+exports.deleteCat = deleteOne(Cat);
 
-exports.updateCat = catchAsync( async function(req, res, next) {
-    const cat = await Cat.findById(req.params.cId);
-    if (!cat) {
-      return next(new AppError('No category found with that ID', 404));
-    }
-    const user = await User.findById(req.user.id)
-    if (user.roles === 'admin') {
-    delete req.user
-    if (req.body) {
-    const fields = Object.keys(req.body);
-    fields.map(item => cat[item] = req.body[item])
-    cat.save();
-    res.status(204).json({ok: true, message: 'Category updated successfully'})
-}
-} else {
-  res.status(401).json({ok: false, error: 'Unauthorized'});
-}
-});
+exports.updateCat = updateOne(Cat);
