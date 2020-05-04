@@ -20,7 +20,8 @@ const globalErrorHandler = require('./src/controllers/errorController')
 const toursRoute = require('./src/routes/tours');
 const usersRoute = require('./src/routes/users');
 const catsRoute = require('./src/routes/cat');
-const reviewsRoute = require('./src/routes/review.js');
+const reviewsRoute = require('./src/routes/review');
+const statsRoute = require('./src/routes/stats');
 
 const limiter = rateLimit({
   max: 100,
@@ -28,7 +29,7 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again in an hour!'
 })
 const limiterUsers = rateLimit({
-  max: 5,
+  max: 20,
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!'
 })
@@ -69,6 +70,7 @@ app.use(hpp({
 app.use('/cat/:cId/tours/:tId/reviews', reviewsRoute);
 app.use('/cat/:cId/tours/', toursRoute);
 app.use('/cat', catsRoute);
+app.use('/stats', statsRoute);
 app.use('/users', usersRoute);
 
 

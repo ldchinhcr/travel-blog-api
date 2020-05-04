@@ -46,7 +46,7 @@ exports.auth = catchAsync(async function (req, res, next) {
   const token = req.headers.authorization.replace("Bearer ", "");
   if (token) {
       const tokenJson = jwt.verify(token, process.env.SECRET_KEY);
-      const user = await User.findOne({email: tokenJson.email, _id: tokenJson.id, name: tokenJson.name});
+      const user = await User.findById(tokenJson.id);
       if (user) {
       req.user = tokenJson;
       next()

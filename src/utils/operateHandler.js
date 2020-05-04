@@ -24,6 +24,8 @@ const ownerCheck = async function (reqId, Model, id) {
     user.roles === 'editor'
   ) {
     return true;
+  } else{
+    return false;
   }
 } catch (err) {
     console.log(err.message);
@@ -69,20 +71,28 @@ exports.updateOne = (Model) =>
             'startDates',
             'secretTour'
           );
-        }
-        if (Object.keys(filteredBody).includes('name')) {
-            filteredBody.slug = slugify(filteredBody.name, { lower: true });
+          if (Object.keys(filteredBody).includes('name')) {
+              filteredBody.slug = slugify(filteredBody.name, { lower: true });
+          }
+        } else {
+          return next(new AppError("You don't have permission to perform this action", 403));
         }
         break;
       case 'Review':
         id = req.params.rId;
-        if (await ownerCheck(req.user.id, Model, id))
+        if (await ownerCheck(req.user.id, Model, id)) {
           filteredBody = filterObj(req.body, 'content', 'rating');
+        } else {
+          return next(new AppError("You don't have permission to perform this action", 403));
+        }
         break;
       case 'User':
         id = req.user.id;
-        if (await ownerCheck(req.user.id, Model, id))
+        if (await ownerCheck(req.user.id, Model, id)) {
           filteredBody = filterObj(req.body, 'name', 'email', 'dob');
+        } else {
+          return next(new AppError("You don't have permission to perform this action", 403));
+        }
         break;
       case 'Category':
         id = req.params.cId;

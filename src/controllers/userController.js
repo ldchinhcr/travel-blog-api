@@ -38,7 +38,7 @@ exports.updatePasswords = catchAsync(async function (req, res, next) {
     return next(new AppError('No User with that such ID!', 404));
   }
   if (req.body) {
-    const verifiedPassword = await bcrypt.compare(req.body.currentPassword, user.password);
+    const verifiedPassword = await bcrypt.compare(req.body.currentPassword.toString(), user.password);
     if (!verifiedPassword) {
       return next(new AppError('Invalid current password', 400));
     }
@@ -47,7 +47,7 @@ exports.updatePasswords = catchAsync(async function (req, res, next) {
     user.passwordConfirm = req.body.passwordConfirm;
     const verified = await user.save();
     if (!verified) {
-      return next(new AppError('Something went wrong!', 500));
+      return next(new AppError('Something went wrong! Check again please!', 500));
     }
     res.status(200).json({
       ok: true,

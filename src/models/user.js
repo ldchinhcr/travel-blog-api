@@ -55,7 +55,7 @@ const schema = mongoose.Schema(
     roles: {
       type: String,
       enum: ["user", "admin", "editor"],
-      default: "admin",
+      default: "user",
     },
     token: [],
     passwordResetToken: String,
@@ -112,22 +112,23 @@ schema.methods.createPasswordResetToken = function() {
 schema.methods.toJSON = function () {
   const userObj = this.toObject();
   delete userObj.roles;
+  delete userObj.active;
   delete userObj.token;
-  delete userObj.password;
+  // delete userObj.password;
   delete userObj.__v;
   delete userObj.dob;
   return userObj;
 };
 
 schema.pre("save", async function (next) {
-  if (!this.isModified("password") || this.isNew) next();
+  if (!this.isModified("password")) next();
   this.password = await bcrypt.hash(this.password, saltRounds);
   this.passwordConfirm = undefined;
   next();
 });
 
 schema.pre(/^find/, function(next) {
-  this.find({active: true});
+  this.find({active: true, roles: {$ne: 'admin'}});
   next();
 })
 

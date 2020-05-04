@@ -16,12 +16,6 @@ router.route('/:tId')
 .put(auth, validateCat, validateTour, updateTour)
 .delete(auth, validateCat, validateTour, deleteTour);
 
-router.get('/top-5-cheap', aliasTopTours, filteredTours);
-
-router.get('/tour-stats', getTourStats);
-
-router.get('/monthly-plan/:year', getMonthlyPlan);
-
 router.route('/')
 .get(validateCat, getTour)
 .post(auth, validateCat, createTour);
