@@ -1,10 +1,8 @@
 const Tour = require('../models/tour');
-const Cat = require('../models/category');
-const User = require('../models/user');
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
-const {updateOne, deleteOne} = require('../utils/operateHandler');
+const {updateOne, deleteOne, createOne} = require('../utils/operateHandler');
 
 
 
@@ -15,39 +13,22 @@ exports.aliasTopTours = (req, res, next) => {
   next();
 };
 
-exports.createTour = catchAsync(async function (req, res) {
-  req.body.category = req.cat._id;
-  req.body.createdBy = req.user.id;
-    const tour = await Tour.create(req.body);
-    if (!tour) {
-      return next(new AppError('Create tour failed', 500));
-    }
-    res.status(201).json({ ok: true, tour: tour });
-});
+exports.createTour = createOne(Tour);
 
 exports.updateTour = updateOne(Tour);
 
 exports.getTour = catchAsync(async function (req, res, next) {
-    const cat = await Cat.findById(req.cat._id).populate({
-      path: 'tours',
-      select: '-createdAt -updatedAt -__v -createdBy -id',
-    });
-    if (!cat) {
-      return next(new AppError('No tours found with that category ID', 404));
+  const features = new APIFeatures(Tour.find(), req.query)
+  .filter()
+  .sort()
+  .limitFields()
+  .paginate();
+  const tours = await features.query;
+  console.log(tours)
+    if (tours.length === 0) {
+      return next(new AppError("Nothing to show!", 404))
     }
-    res
-      .status(200)
-      .json({ ok: true, tour: cat, tours_length: cat.tours.length });
-});
-
-exports.filteredTours = catchAsync(async function (req, res) {
-    const features = new APIFeatures(Tour.find(), req.query)
-      .filter()
-      .sort()
-      .limitFields()
-      .paginate();
-    const tour = await features.query;
-    res.status(200).json({ ok: true, tour: tour, tours_length: tour.length });
+    res.status(200).json({ status: true, tours: tours, tours_length: tours.length });
 });
 
 exports.getSingleTour = catchAsync(async function (req, res, next) {
@@ -56,11 +37,15 @@ exports.getSingleTour = catchAsync(async function (req, res, next) {
       .populate({
         path: 'category',
         select: '-createdAt -updatedAt -__v',
+      })
+      .populate({
+        path: 'reviews',
+        select: '_id content rating'
       });
       if (!tour) {
         return next(new AppError('No tour found with that ID', 404));
       }
-    res.status(200).json({ ok: true, tour: tour });
+    res.status(200).json({ status: true, tour: tour });
 });
 
 exports.deleteTour = deleteOne(Tour);
@@ -88,7 +73,7 @@ exports.getTourStats = catchAsync(async (req, res) => {
       //   $match: { _id: {$ne: 'EASY'}}
       // }
     ]);
-    res.status(200).json({ ok: true, stats: stats });
+    res.status(200).json({ status: true, stats: stats });
 });
 
 exports.getMonthlyPlan = catchAsync(async (req, res) => {
@@ -128,5 +113,5 @@ exports.getMonthlyPlan = catchAsync(async (req, res) => {
         $limit: 6
       },
     ]);
-    res.status(200).json({ ok: true, plan: plan });
+    res.status(200).json({ status: true, plan: plan });
 });

@@ -21,12 +21,6 @@ const schema = mongoose.Schema(
   }
 );
 
-schema.virtual('tours', {
-  ref: 'Tour',
-  localField: '_id',
-  foreignField: 'category'
-});
-
 schema.methods.toJSON = function () {
   const Obj = this.toObject();
   delete Obj.createdAt;

@@ -2,6 +2,7 @@ const User = require("../models/user");
 const Cat = require("../models/category");
 const Review = require("../models/review");
 const Tour = require("../models/tour");
+const AppError = require("./appError");
 
 
 exports.roleCheck = async function(req,res, next) {
@@ -9,7 +10,7 @@ exports.roleCheck = async function(req,res, next) {
     if (user && user.roles !== 'user'){
         next()
     } else{
-        res.status(403).json({ok: false, message: 'Forbidden'})
+        return next(new AppError('Forbidden', 403));
     }
 }
 
@@ -20,7 +21,7 @@ exports.validateCat = async function(req,res,next) {
         req.cat = cat;
         next();
     } else {
-        res.status(404).json({ok: false, message: "There's no such category!"});
+        return next(new AppError("There's no such category!", 404));
     }
 }
 
@@ -31,7 +32,7 @@ exports.validateTour = async function(req,res,next) {
         req.tour = tour;
         next();
     } else {
-        res.status(404).json({ok: false, message: "There's no such tour in our db!"});
+        return next(new AppError("There's no such tour in our db!", 404));
     }
 }
 
@@ -41,6 +42,6 @@ exports.validateReview = async function(req,res,next) {
         req.review = review;
         next();
     } else {
-        res.status(404).json({ok: false, message: "There's no such review in our db!"});
+        return next(new AppError("There's no such review in our db!", 404));
     }
 }

@@ -1,2 +1,6 @@
 .env
 node_modules/
+test.env
+server.cert
+server.key
+src/assets/

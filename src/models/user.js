@@ -20,16 +20,9 @@ const schema = mongoose.Schema(
         'Please provide a valid email']
     },
     name: {
-      first: {
         type: String,
-        required: [true, "First name is required"],
-        trim: true,
-      },
-      last: {
-        type: String,
-        required: [true, "Last name is required"],
-        trim: true,
-      },
+        required: [true, "Name is required"],
+        trim: true
     },
     password: {
       type: String,
@@ -55,9 +48,16 @@ const schema = mongoose.Schema(
     roles: {
       type: String,
       enum: ["user", "admin", "editor"],
-      default: "user",
+      default: "admin",
     },
     token: [],
+    verified: {
+      type: Boolean,
+      default: false,
+      select: false
+    },
+    verifyToken: String,
+    verifyExpires: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
     active: {
@@ -79,9 +79,10 @@ schema.virtual('userTours', {
   foreignField: 'createdBy'
 });
 
-schema.statics.loginWithCredentials = async (email, password) => {
+schema.statics.loginWithCredentials = async function(email, password) {
   const user = await User.findOne({email: email.toLowerCase()});
   if (!user) throw new AppError("Email not correct", 401);
+  if (!user.password) throw new AppError("Try with login with social networks, and change password", 400);
   const auth = await bcrypt.compare(password.toString(), user.password);
   if (!auth) throw new AppError("Password not correct", 401);
   return user;
@@ -89,12 +90,25 @@ schema.statics.loginWithCredentials = async (email, password) => {
 
 schema.statics.generateToken = async (user) => {
   const token = await jwt.sign(
-    { id: user._id, email: user.email, name: user.name },
+    { id: user._id, email: user.email, name: user.name, roles: user.roles },
     process.env.SECRET_KEY,
     { expiresIn: process.env.TOKEN_LIFE }
   );
   return token;
 };
+
+schema.statics.findOneOrCreate = async ({name, email}) => {
+  let user = await User.findOne({email})
+  if (!user) {
+    user = new User({name, email})
+    user.token.push(await User.generateToken(user))
+    await user.save({ validateBeforeSave: false })
+  } else {
+    user.token.push(await User.generateToken(user))
+    await user.save({ validateBeforeSave: false })
+  }
+  return user
+}
 
 schema.methods.createPasswordResetToken = function() {
   const resetToken = crypto.randomBytes(32).toString('hex');
@@ -109,12 +123,25 @@ schema.methods.createPasswordResetToken = function() {
   return resetToken;
 }
 
+schema.methods.createVerifyToken = async function() {
+  const verifyToken = crypto.randomBytes(32).toString('hex');
+
+  this.verifyToken = crypto
+  .createHash('sha256')
+  .update(verifyToken)
+  .digest('hex');
+
+  this.verifyExpires = Date.now() + 60 * 60 * 1000;
+  await this.save({ validateBeforeSave: false });
+  return verifyToken;
+}
+
 schema.methods.toJSON = function () {
   const userObj = this.toObject();
   delete userObj.roles;
   delete userObj.active;
   delete userObj.token;
-  // delete userObj.password;
+  delete userObj.password;
   delete userObj.__v;
   delete userObj.dob;
   return userObj;
@@ -128,7 +155,7 @@ schema.pre("save", async function (next) {
 });
 
 schema.pre(/^find/, function(next) {
-  this.find({active: true, roles: {$ne: 'admin'}});
+  this.find({active: true});
   next();
 })
 

@@ -24,7 +24,7 @@ const tokenExpired = (err) => {
 
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
-    ok: err.status,
+    status: err.status,
     error: err,
     message: err.message,
     stack: err.stack,
@@ -34,7 +34,7 @@ const sendErrorDev = (err, res) => {
 const sendErrorProd = (err, res) => {
   if (err.isOperational) {
     res.status(err.statusCode).json({
-      ok: err.status,
+      status: err.status,
       message: err.message,
     });
   } else {

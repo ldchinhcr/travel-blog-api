@@ -15,8 +15,8 @@ const schema = mongoose.Schema({
         type: Number,
         required: [true, 'Rating is required.'],
         trim: true,
-        min: 1,
-        max: 10
+        min: 0,
+        max: 5
     },
     category: {
         type: mongoose.Schema.ObjectId,
@@ -41,6 +41,28 @@ schema.methods.toJSON = function () {
     delete Obj.__v;
     return Obj;
   };
+  
+  schema.statics.calculateAvgRating = async function(tourId) {
+      const stats = await this.aggregate([
+          {$match: { tour: tourId }},
+          {$group: {
+              _id: "$tour",
+              ratingQuantity: { $sum: 1 },
+              avgRating: { $avg: "$rating" },
+            }}
+        ])
+
+    await mongoose.model('Tour').findByIdAndUpdate(tourId, {
+        ratingsAverage: stats.length === 0 ? 4.5 : stats[0].avgRating,
+        ratingsQuantity: stats.length === 0 ? 0 : stats[0].ratingQuantity
+    });
+};
+
+schema.index({tour: 1, createdBy: 1}, {unique: true});
+
+schema.post('save', async function () {
+    await this.constructor.calculateAvgRating(this.tour);
+});
 
 const Review = mongoose.model('Review', schema);
 

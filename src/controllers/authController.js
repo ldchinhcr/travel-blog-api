@@ -5,6 +5,9 @@ const AppError = require('../utils/appError');
 
 exports.login = catchAsync(async function (req, res, next) {
     const { email, password } = req.body;
+    if (!password || !email) {
+      return next(new AppError('Email and either password are required', 400));
+    }
     const user = await User.loginWithCredentials(email, password);
     const token = await User.generateToken(user);
     user.token.push(token)
@@ -21,7 +24,7 @@ exports.login = catchAsync(async function (req, res, next) {
     
     res.cookie('jwt', token, cookieOptions);
     
-    res.status(200).json({ ok: true, token: token });
+    res.status(200).json({ status: true, user: user, token: token });
 });
 
 exports.logout = catchAsync(async function (req, res) {
@@ -42,13 +45,13 @@ exports.logoutall = catchAsync(async function (req, res) {
   });
 
 exports.auth = catchAsync(async function (req, res, next) {
-  if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) return res.status(403).json({ ok: false, message: "You're not logged in, please login first!" });
+  if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) return res.status(403).json({ status: false, message: "You're not logged in, please login first!" });
   const token = req.headers.authorization.replace("Bearer ", "");
   if (token) {
       const tokenJson = jwt.verify(token, process.env.SECRET_KEY);
       const user = await User.findById(tokenJson.id);
       if (user) {
-      req.user = tokenJson;
+      req.user = user;
       next()
     } else {
       return next(new AppError('User not found!', 404));
